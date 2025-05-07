@@ -1,0 +1,15 @@
+{% extends 'maintenance/base.html' %}
+
+{% block title %}Replacement History{% endblock %}
+
+{% block content %}
+    <h1>Replacement History</h1>
+    <ul>
+        {% for record in records %}
+            <li>{{ record.component }} - Last replaced on {{ record.last_replaced }}</li>
+        {% empty %}
+            <li>No replacement history available.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+<a href="{% url 'home' %}">Back to Home</a>
