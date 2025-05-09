@@ -1,0 +1,110 @@
+{% extends 'maintenance/base.html' %}
+
+{% block title %}Log Replacement{% endblock %}
+
+{% block content %}
+    <h1>Log Replacement</h1>
+
+    <div class="filters">
+        <form id="filterForm" class="filter-form" onsubmit="return false;">
+            <div class="filter-group">
+                <label for="building">Building:</label>
+                <select name="building" id="building">
+                    <option value="">Select Building</option>
+                    {% for building in buildings %}
+                        <option value="{{ building.id }}">{{ building.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="machine">Machine:</label>
+                <select name="machine" id="machine">
+                    <option value="">Select Machine</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="component">Component:</label>
+                <select name="component" id="component">
+                    <option value="">Select Component</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="battery">Battery:</label>
+                <select name="battery" id="battery">
+                    <option value="">Select Battery</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <form method="POST" class="replacement-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="replacement_date">Replacement Date:</label>
+            <input type="date" id="replacement_date" name="replacement_date" value="{{ today|date:'Y-m-d' }}">
+        </div>
+        <button type="submit" class="submit-button">Log Replacement</button>
+    </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buildingSelect = document.getElementById('building');
+    const machineSelect = document.getElementById('machine');
+    const componentSelect = document.getElementById('component');
+    const batterySelect = document.getElementById('battery');
+
+    async function fetchAndPopulate(url, targetSelect, placeholder) {
+        console.log("Fetching:", url); // Debug
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log("Data for", targetSelect.id, data); // Debug
+            targetSelect.innerHTML = `<option value="">${placeholder}</option>`;
+            data.forEach(item => {
+                targetSelect.innerHTML += `<option value="${item.id}">${item.label}</option>`;
+            });
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+
+    buildingSelect.addEventListener('change', () => {
+        const buildingId = buildingSelect.value;
+        console.log("Building changed:", buildingId); // Debug
+        if (buildingId) {
+            fetchAndPopulate(`/api/machines/?building=${buildingId}`, machineSelect, 'Select Machine');
+        } else {
+            machineSelect.innerHTML = '<option value="">Select Machine</option>';
+        }
+        componentSelect.innerHTML = '<option value="">Select Component</option>';
+        batterySelect.innerHTML = '<option value="">Select Battery</option>';
+    });
+
+    machineSelect.addEventListener('change', () => {
+        const machineId = machineSelect.value;
+        console.log("Machine changed:", machineId); // Debug
+        if (machineId) {
+            fetchAndPopulate(`/api/components/?machine=${machineId}`, componentSelect, 'Select Component');
+        } else {
+            componentSelect.innerHTML = '<option value="">Select Component</option>';
+        }
+        batterySelect.innerHTML = '<option value="">Select Battery</option>';
+    });
+
+    componentSelect.addEventListener('change', () => {
+        const componentId = componentSelect.value;
+        console.log("Component changed:", componentId); // Debug
+        if (componentId) {
+            fetchAndPopulate(`/api/batteries/?component=${componentId}`, batterySelect, 'Select Battery');
+        } else {
+            batterySelect.innerHTML = '<option value="">Select Battery</option>';
+        }
+    });
+});
+</script>
+{% endblock %}

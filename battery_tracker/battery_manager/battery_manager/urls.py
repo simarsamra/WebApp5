@@ -23,9 +23,11 @@ from maintenance import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),  # Home page
-
     path('history/', views.history, name='history'),  # History page
-
+    path('log-replacement/', views.log_replacement, name='log_replacement'),
+    path('api/machines/', views.get_machines, name='api_machines'),
+    path('api/components/', views.get_components, name='api_components'),
+    path('api/batteries/', views.get_batteries, name='api_batteries'),
 ]
 
 if settings.DEBUG:

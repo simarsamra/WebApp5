@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
-from maintenance.models import Machine, Component, BatteryReplacementRecord
+from maintenance.models import Building, Machine, Component, Battery, BatteryReplacementRecord
 from datetime import date, timedelta
-from django.contrib.auth.models import User
 import random
+
 
 class Command(BaseCommand):
     help = 'Seeds the database with initial data'
@@ -10,39 +10,52 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write('Seeding the database...')
 
-        # Create a superuser
-        if not User.objects.filter(username='testuser').exists():
-            User.objects.create_superuser('testuser', 'test@example.com', 'password123')
-            self.stdout.write(self.style.SUCCESS('✅ Superuser \'testuser\' created with password \'password123\'.'))
+        # Create buildings
+        buildings = []
+        for i in range(2):
+            building, _ = Building.objects.get_or_create(name=f"Building {i+1}")
+            buildings.append(building)
 
-        # Create some machines
+        # Create machines
         machines = []
-        for i in range(5):
-            machine, _ = Machine.objects.get_or_create(
-                building=f"Building {i+1}",
-                model=f"Machine Model {i+1}",
-                machine_id=f"M{i+1:03d}",
-                year_of_manufacture=2020 + i,  # Add this line
-            )
-            machines.append(machine)
+        for i, building in enumerate(buildings):
+            for j in range(3):
+                machine, _ = Machine.objects.get_or_create(
+                    building=building,
+                    model=f"Machine Model {j+1}",
+                    machine_id=f"M{i+1}{j+1:02d}"
+                )
+                machines.append(machine)
 
-        # Create some components
+        # Create components
         components = []
         for machine in machines:
-            for j in range(3):
-                component = Component.objects.create(
+            for k in range(2):
+                component, _ = Component.objects.get_or_create(
                     machine=machine,
-                    component_model=f"Component {j+1} for {machine.model}"
+                    name=f"Component {k+1} for {machine.model}",
+                    model_number=f"CM{k+1:03d}",
+                    oem=f"OEM {k+1}"
                 )
                 components.append(component)
 
-        # Create some battery replacement records
+        # Create batteries
+        batteries = []
         for component in components:
-            due_date = date.today() + timedelta(days=random.randint(30, 365))
-            BatteryReplacementRecord.objects.create(
-                component=component,
-                due_date=due_date,
-                last_replaced=date.today() - timedelta(days=random.randint(10, 90))
-            )
+            for l in range(1):
+                battery, _ = Battery.objects.get_or_create(
+                    component=component,
+                    oem_part_number=f"BATT-{l+1:03d}",
+                    oem=f"Battery OEM {l+1}"
+                )
+                batteries.append(battery)
+
+        # Create battery replacement records
+        for battery in batteries:
+            for m in range(2):
+                BatteryReplacementRecord.objects.create(
+                    battery=battery,
+                    replacement_date=date.today() - timedelta(days=random.randint(1, 100))
+                )
 
         self.stdout.write(self.style.SUCCESS('✅ Database seeding complete.'))

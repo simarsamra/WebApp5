@@ -5,8 +5,8 @@
 {% block content %}
     <h1>Replacement History</h1>
     <ul>
-        {% for record in records %}
-            <li>{{ record.component }} - Last replaced on {{ record.last_replaced }}</li>
+        {% for record in replacement_history %}
+            <li>{{ record.battery.component }} - Last replaced on {{ record.replacement_date }}</li>
         {% empty %}
             <li>No replacement history available.</li>
         {% endfor %}

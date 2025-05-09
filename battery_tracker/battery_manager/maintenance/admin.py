@@ -1,54 +1,36 @@
 from django.contrib import admin
-from .models import Machine, Component, BatteryReplacementRecord, BatteryModel, ComponentModel
+from .models import Building, Machine, Component, Battery, BatteryReplacementRecord
 
 
-class ComponentInline(admin.TabularInline):
-    model = Component
-    extra = 1  # Number of empty forms to display
-    fields = ('component_model',)
-    show_change_link = True
-
-
-class BatteryReplacementRecordInline(admin.TabularInline):
-    model = BatteryReplacementRecord
-    extra = 1
-    fields = ('due_date', 'last_replaced')
-    show_change_link = True
+@admin.register(Building)
+class BuildingAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
 
 
 @admin.register(Machine)
 class MachineAdmin(admin.ModelAdmin):
-    list_display = ('building', 'machine_id', 'model')
-    search_fields = ('machine_id', 'model', 'building')
+    list_display = ('model', 'machine_id', 'building')
+    search_fields = ('model', 'machine_id', 'building__name')
     list_filter = ('building',)
-    inlines = [ComponentInline]  # Add inline editing for components
 
 
 @admin.register(Component)
 class ComponentAdmin(admin.ModelAdmin):
-    list_display = ('component_model', 'machine')
-    search_fields = ('component_model', 'machine__model', 'machine__building')
-    list_filter = ('machine__building',)
-    inlines = [BatteryReplacementRecordInline]  # Add inline editing for battery replacement records
+    list_display = ('name', 'model_number', 'oem', 'machine')
+    search_fields = ('name', 'model_number', 'oem', 'machine__machine_id')
+    list_filter = ('machine__building', 'machine')
 
 
-@admin.register(BatteryModel)
-class BatteryModelAdmin(admin.ModelAdmin):
-    list_display = ('name', 'oem', 'oem_part_number')
-    search_fields = ('name', 'oem', 'oem_part_number')
-    list_filter = ('oem',)
-
-
-@admin.register(ComponentModel)
-class ComponentModelAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
-    search_fields = ('name',)
-    list_filter = ('name',)
+@admin.register(Battery)
+class BatteryAdmin(admin.ModelAdmin):
+    list_display = ('oem', 'oem_part_number', 'component')
+    search_fields = ('oem', 'oem_part_number', 'component__name')
+    list_filter = ('component__machine__building',)
 
 
 @admin.register(BatteryReplacementRecord)
 class BatteryReplacementRecordAdmin(admin.ModelAdmin):
-    list_display = ('component', 'due_date', 'last_replaced')
-    list_filter = ('due_date', 'last_replaced')
-    search_fields = ('component__component_model', 'component__machine__model')
-    date_hierarchy = 'last_replaced'  # Add a date hierarchy for better navigation
+    list_display = ('battery', 'replacement_date', 'logged_at')
+    search_fields = ('battery__oem', 'battery__oem_part_number', 'battery__component__name')
+    list_filter = ('replacement_date', 'battery__component__machine__building')

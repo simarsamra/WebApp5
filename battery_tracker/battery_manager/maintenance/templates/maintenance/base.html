@@ -11,13 +11,14 @@
     <nav>
         <ul>
             <li><a href="{% url 'home' %}">Home</a></li>
-
             <li><a href="{% url 'history' %}">History</a></li>
+            <li><a href="{% url 'log_replacement' %}">Log Replacement</a></li>
         </ul>
     </nav>
     <main>
         {% block content %}
         {% endblock %}
     </main>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
