@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'maintenance',  # <-- Add this
+    'import_export',
+    'maintenance',
 ]
 
 
