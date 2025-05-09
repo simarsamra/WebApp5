@@ -4,12 +4,19 @@
 
 {% block content %}
     <h1>Battery Tracker</h1>
+
     <h2>Upcoming Replacements</h2>
     <ul>
         {% for record in upcoming_replacements %}
             <li class="upcoming">
-                <strong>{{ record.component }}</strong>
-                <div>Due on: {{ record.due_date }}</div>
+                <strong>
+                    {{ record.battery.component }} &mdash; {{ record.battery }}
+                </strong>
+                <div>
+                    Machine: {{ record.battery.component.machine }}<br>
+                    Building: {{ record.battery.component.machine.building }}
+                </div>
+                <div>Due on: {{ record.replacement_date }}</div>
             </li>
         {% empty %}
             <li>No upcoming replacements.</li>
@@ -20,8 +27,14 @@
     <ul>
         {% for record in overdue_replacements %}
             <li class="overdue">
-                <strong>{{ record.component }}</strong>
-                <div>Overdue since: {{ record.due_date }}</div>
+                <strong>
+                    {{ record.battery.component }} &mdash; {{ record.battery }}
+                </strong>
+                <div>
+                    Machine: {{ record.battery.component.machine }}<br>
+                    Building: {{ record.battery.component.machine.building }}
+                </div>
+                <div>Overdue since: {{ record.replacement_date }}</div>
             </li>
         {% empty %}
             <li>No overdue replacements.</li>

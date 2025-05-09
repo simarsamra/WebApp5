@@ -2,7 +2,11 @@ from django.shortcuts import render, redirect
 from django.utils.timezone import now
 from datetime import timedelta, date
 from django.http import JsonResponse
+from django.contrib import messages
 from .models import BatteryReplacementRecord, Machine, Component, Building, Battery
+import csv
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 
 def home(request):
     today = date.today()
@@ -19,14 +23,50 @@ def home(request):
     })
 
 def history(request):
-    replacement_history = BatteryReplacementRecord.objects.all().order_by('-replacement_date')
+    buildings = Building.objects.all()
+    machines = Machine.objects.all()
+    components = Component.objects.all()
+    qs = BatteryReplacementRecord.objects.all().order_by('-replacement_date')
+
+    building_id = request.GET.get('building')
+    machine_id = request.GET.get('machine')
+    component_id = request.GET.get('component')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    if building_id:
+        qs = qs.filter(battery__component__machine__building_id=building_id)
+        machines = machines.filter(building_id=building_id)
+    if machine_id:
+        qs = qs.filter(battery__component__machine_id=machine_id)
+        components = components.filter(machine_id=machine_id)
+    if component_id:
+        qs = qs.filter(battery__component_id=component_id)
+    if date_from:
+        qs = qs.filter(replacement_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(replacement_date__lte=date_to)
 
     return render(request, 'maintenance/history.html', {
-        'replacement_history': replacement_history,
+        'replacement_history': qs,
+        'buildings': buildings,
+        'machines': machines,
+        'components': components,
     })
 
+@login_required(login_url='/accounts/login/')
 def log_replacement(request):
     buildings = Building.objects.all()
+    if request.method == "POST":
+        battery_id = request.POST.get("battery")
+        replacement_date = request.POST.get("replacement_date")
+        if battery_id and replacement_date:
+            BatteryReplacementRecord.objects.create(
+                battery_id=battery_id,
+                replacement_date=replacement_date
+            )
+            messages.success(request, "Replacement logged successfully!")
+            return redirect('history')
     return render(request, 'maintenance/log_replacement.html', {
         'buildings': buildings,
         'today': date.today(),
@@ -68,6 +108,47 @@ def get_batteries(request):
         for b in batteries
     ]
     return JsonResponse(data, safe=False)
+
+def export_history_csv(request):
+    qs = BatteryReplacementRecord.objects.all().order_by('-replacement_date')
+
+    building_id = request.GET.get('building')
+    machine_id = request.GET.get('machine')
+    component_id = request.GET.get('component')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    if building_id:
+        qs = qs.filter(battery__component__machine__building_id=building_id)
+    if machine_id:
+        qs = qs.filter(battery__component__machine_id=machine_id)
+    if component_id:
+        qs = qs.filter(battery__component_id=component_id)
+    if date_from:
+        qs = qs.filter(replacement_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(replacement_date__lte=date_to)
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="replacement_history.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Building', 'Machine', 'Component', 'Battery', 'Replacement Date'])
+
+    for record in qs:
+        writer.writerow([
+            record.battery.component.machine.building.name,
+            str(record.battery.component.machine),
+            str(record.battery.component),
+            str(record.battery),
+            record.replacement_date
+        ])
+
+    return response
+
+@login_required
+def profile(request):
+    return render(request, 'maintenance/profile.html')
 
 
 

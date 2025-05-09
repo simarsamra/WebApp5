@@ -4,12 +4,65 @@
 
 {% block content %}
     <h1>Replacement History</h1>
-    <ul>
+    <form method="get" id="history-filter-form" style="margin-bottom: 1em;">
+        <label for="building">Building:</label>
+        <select name="building" id="building">
+            <option value="">All</option>
+            {% for building in buildings %}
+                <option value="{{ building.id }}" {% if building.id|stringformat:"s" == request.GET.building %}selected{% endif %}>{{ building.name }}</option>
+            {% endfor %}
+        </select>
+        <label for="machine">Machine:</label>
+        <select name="machine" id="machine">
+            <option value="">All</option>
+            {% for machine in machines %}
+                <option value="{{ machine.id }}" {% if machine.id|stringformat:"s" == request.GET.machine %}selected{% endif %}>{{ machine.model }} ({{ machine.machine_id }})</option>
+            {% endfor %}
+        </select>
+        <label for="component">Component:</label>
+        <select name="component" id="component">
+            <option value="">All</option>
+            {% for component in components %}
+                <option value="{{ component.id }}" {% if component.id|stringformat:"s" == request.GET.component %}selected{% endif %}>{{ component.name }} ({{ component.model_number }})</option>
+            {% endfor %}
+        </select>
+        <label for="date_from">From:</label>
+        <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+        <label for="date_to">To:</label>
+        <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+        <button type="submit">Filter</button>
+    </form>
+    <form method="get" action="{% url 'export_history_csv' %}" style="display:inline;">
+        <input type="hidden" name="building" value="{{ request.GET.building }}">
+        <input type="hidden" name="machine" value="{{ request.GET.machine }}">
+        <input type="hidden" name="component" value="{{ request.GET.component }}">
+        <input type="hidden" name="date_from" value="{{ request.GET.date_from }}">
+        <input type="hidden" name="date_to" value="{{ request.GET.date_to }}">
+        <button type="submit">Export to CSV</button>
+    </form>
+    <table border="1" cellpadding="4" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Building</th>
+                <th>Machine</th>
+                <th>Component</th>
+                <th>Battery</th>
+                <th>Replacement Date</th>
+            </tr>
+        </thead>
+        <tbody>
         {% for record in replacement_history %}
-            <li>{{ record.battery.component }} - Last replaced on {{ record.replacement_date }}</li>
+            <tr>
+                <td>{{ record.battery.component.machine.building.name }}</td>
+                <td>{{ record.battery.component.machine }}</td>
+                <td>{{ record.battery.component }}</td>
+                <td>{{ record.battery }}</td>
+                <td>{{ record.replacement_date }}</td>
+            </tr>
         {% empty %}
-            <li>No replacement history available.</li>
+            <tr><td colspan="5">No replacement history available.</td></tr>
         {% endfor %}
-    </ul>
+        </tbody>
+    </table>
 {% endblock %}
 <a href="{% url 'home' %}">Back to Home</a>

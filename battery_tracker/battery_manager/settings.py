@@ -30,6 +30,7 @@ STATICFILES_DIRS = [
 print(f"BASE_DIR: {BASE_DIR}")
 print(f"STATIC_ROOT: {STATIC_ROOT}")
 print(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
+print("USING SETTINGS FILE:", __file__)
 
 # Debug settings
 DEBUG = True
@@ -54,3 +55,26 @@ TEMPLATES = [
         },
     },
 ]
+
+# Email backend for development: prints emails to the console
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# If you want to use a local SMTP server, comment the above and uncomment below:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'localhost'
+# EMAIL_PORT = 1025  # Change if your local SMTP uses a different port
+# EMAIL_HOST_USER = ''
+# EMAIL_HOST_PASSWORD = ''
+# EMAIL_USE_TLS = False
+
+# Default sender email address
+DEFAULT_FROM_EMAIL = 'battery-tracker@example.com'
+
+# Recipients for battery replacement reminders (comma-separated string or list)
+REMINDER_RECIPIENTS = [
+    'recipient1@example.com',
+    'recipient2@example.com',
+]
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

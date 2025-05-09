@@ -30,18 +30,17 @@
                     <option value="">Select Component</option>
                 </select>
             </div>
-
-            <div class="filter-group">
-                <label for="battery">Battery:</label>
-                <select name="battery" id="battery">
-                    <option value="">Select Battery</option>
-                </select>
-            </div>
         </form>
     </div>
 
     <form method="POST" class="replacement-form">
         {% csrf_token %}
+        <div class="form-group">
+            <label for="battery">Battery:</label>
+            <select name="battery" id="battery">
+                <option value="">Select Battery</option>
+            </select>
+        </div>
         <div class="form-group">
             <label for="replacement_date">Replacement Date:</label>
             <input type="date" id="replacement_date" name="replacement_date" value="{{ today|date:'Y-m-d' }}">

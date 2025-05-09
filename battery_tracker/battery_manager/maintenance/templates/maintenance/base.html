@@ -13,6 +13,18 @@
             <li><a href="{% url 'home' %}">Home</a></li>
             <li><a href="{% url 'history' %}">History</a></li>
             <li><a href="{% url 'log_replacement' %}">Log Replacement</a></li>
+            {% if user.is_authenticated %}
+                <li>
+                    <form action="/accounts/logout/" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="background:none;border:none;padding:0;color:#069;text-decoration:underline;cursor:pointer;">
+                            Logout ({{ user.username }})
+                        </button>
+                    </form>
+                </li>
+            {% else %}
+                <li><a href="{% url 'login' %}">Login</a></li>
+            {% endif %}
         </ul>
     </nav>
     <main>
