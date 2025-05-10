@@ -34,8 +34,8 @@ print(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
 print("USING SETTINGS FILE:", __file__)
 
 # Debug settings
-DEBUG = True
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+DEBUG = False
+ALLOWED_HOSTS = ['yourdomain.com', 'your.server.ip']
 
 # Media files configuration
 MEDIA_URL = '/media/'
