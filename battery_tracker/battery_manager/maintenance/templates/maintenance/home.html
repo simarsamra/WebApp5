@@ -10,13 +10,20 @@
         {% for record in upcoming_replacements %}
             <li class="upcoming">
                 <strong>
-                    {{ record.battery.component }} &mdash; {{ record.battery }}
+                    {{ record.component }} &mdash; {{ record.battery }}
                 </strong>
                 <div>
-                    Machine: {{ record.battery.component.machine }}<br>
-                    Building: {{ record.battery.component.machine.building }}
+                    Machine: {{ record.machine }}<br>
+                    Building: {{ record.building }}
                 </div>
-                <div>Due on: {{ record.replacement_date }}</div>
+                <div>
+                    Last replaced: {{ record.last_replacement }}<br>
+                    {% if record.next_due %}
+                        Due on: {{ record.next_due }}
+                    {% else %}
+                        Next due: On Alarm
+                    {% endif %}
+                </div>
             </li>
         {% empty %}
             <li>No upcoming replacements.</li>
@@ -28,13 +35,20 @@
         {% for record in overdue_replacements %}
             <li class="overdue">
                 <strong>
-                    {{ record.battery.component }} &mdash; {{ record.battery }}
+                    {{ record.component }} &mdash; {{ record.battery }}
                 </strong>
                 <div>
-                    Machine: {{ record.battery.component.machine }}<br>
-                    Building: {{ record.battery.component.machine.building }}
+                    Machine: {{ record.machine }}<br>
+                    Building: {{ record.building }}
                 </div>
-                <div>Overdue since: {{ record.replacement_date }}</div>
+                <div>
+                    Last replaced: {{ record.last_replacement }}<br>
+                    {% if record.next_due %}
+                        Overdue since: {{ record.next_due }}
+                    {% else %}
+                        Overdue (On Alarm)
+                    {% endif %}
+                </div>
             </li>
         {% empty %}
             <li>No overdue replacements.</li>

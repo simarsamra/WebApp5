@@ -2,12 +2,19 @@ from django.core.management.base import BaseCommand
 from maintenance.models import Building, Machine, Component, Battery, BatteryReplacementRecord
 from datetime import date, timedelta
 import random
-
+from random import choice, randint
 
 class Command(BaseCommand):
     help = 'Seeds the database with initial data'
 
     def handle(self, *args, **options):
+        self.stdout.write('Clearing old data...')
+        BatteryReplacementRecord.objects.all().delete()
+        Battery.objects.all().delete()
+        Component.objects.all().delete()
+        Machine.objects.all().delete()
+        Building.objects.all().delete()
+
         self.stdout.write('Seeding the database...')
 
         # Create buildings
@@ -43,10 +50,17 @@ class Command(BaseCommand):
         batteries = []
         for component in components:
             for l in range(1):
+                interval_type = choice(['months', 'alarm'])
+                if interval_type == 'months':
+                    interval_months = randint(3, 24)
+                else:
+                    interval_months = None
                 battery, _ = Battery.objects.get_or_create(
                     component=component,
                     oem_part_number=f"BATT-{l+1:03d}",
-                    oem=f"Battery OEM {l+1}"
+                    oem=f"Battery OEM {l+1}",
+                    replacement_interval_type=interval_type,
+                    replacement_interval_months=interval_months
                 )
                 batteries.append(battery)
 

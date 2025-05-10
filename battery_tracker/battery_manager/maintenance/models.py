@@ -28,6 +28,19 @@ class Battery(models.Model):
     component = models.ForeignKey(Component, on_delete=models.CASCADE, related_name="batteries")
     oem_part_number = models.CharField(max_length=100)
     oem = models.CharField(max_length=100)
+    REPLACEMENT_TYPE_CHOICES = [
+        ('months', 'Months'),
+        ('alarm', 'On Alarm'),
+    ]
+    replacement_interval_type = models.CharField(
+        max_length=10,
+        choices=REPLACEMENT_TYPE_CHOICES,
+        default='months'
+    )
+    replacement_interval_months = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Number of months between replacements (if interval type is months)"
+    )
 
     def __str__(self):
         return f"{self.oem} ({self.oem_part_number})"

@@ -7,15 +7,52 @@ from .models import BatteryReplacementRecord, Machine, Component, Building, Batt
 import csv
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.db.models import Min, Max, Q
 
 def home(request):
     today = date.today()
-    upcoming_replacements = BatteryReplacementRecord.objects.filter(
-        replacement_date__gte=today
-    ).order_by('replacement_date')
-    overdue_replacements = BatteryReplacementRecord.objects.filter(
-        replacement_date__lt=today
-    ).order_by('replacement_date')
+    two_months_later = today + timedelta(days=60)
+    upcoming_replacements = []
+    overdue_replacements = []
+
+    for battery in Battery.objects.select_related('component__machine__building').all():
+        # Find the latest replacement record for this battery
+        last_record = battery.replacement_records.order_by('-replacement_date').first()
+        if last_record:
+            last_date = last_record.replacement_date
+        else:
+            continue
+
+        if battery.replacement_interval_type == 'months' and battery.replacement_interval_months:
+            next_due = last_date + timedelta(days=30 * battery.replacement_interval_months)
+            record_info = {
+                'battery': battery,
+                'component': battery.component,
+                'machine': battery.component.machine,
+                'building': battery.component.machine.building,
+                'last_replacement': last_date,
+                'next_due': next_due,
+            }
+            if next_due < today:
+                overdue_replacements.append(record_info)
+            elif today <= next_due <= two_months_later:
+                upcoming_replacements.append(record_info)
+        elif battery.replacement_interval_type == 'alarm':
+            record_info = {
+                'battery': battery,
+                'component': battery.component,
+                'machine': battery.component.machine,
+                'building': battery.component.machine.building,
+                'last_replacement': last_date,
+                'next_due': None,
+            }
+            # Only show as overdue if last replacement is over a year ago
+            if last_date < today - timedelta(days=365):
+                overdue_replacements.append(record_info)
+
+    # Sort by due date
+    upcoming_replacements.sort(key=lambda x: x['next_due'] or date.max)
+    overdue_replacements.sort(key=lambda x: x['next_due'] or date.max)
 
     return render(request, 'maintenance/home.html', {
         'upcoming_replacements': upcoming_replacements,
