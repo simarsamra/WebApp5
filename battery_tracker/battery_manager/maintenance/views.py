@@ -199,133 +199,94 @@ import io
 from PyPDF2 import PdfMerger, PdfReader
 from django.http import HttpResponse
 import os
+from django.conf import settings
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 def export_report_pdf(request):
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
-
     upcoming, overdue = get_upcoming_and_overdue_replacements()
 
-    # 1. Generate the main report to a BytesIO buffer
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    y = height - 40
-
-    # Collect unique procedures (PDFs only)
+    # 1. Collect unique procedures (PDFs only)
     procedures = {}
     for record in upcoming + overdue:
         doc = getattr(record['component'], 'procedure_document', None)
         if doc and doc.name.lower().endswith('.pdf') and doc.name not in procedures:
             procedures[doc.name] = doc
 
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, y, "Battery Replacement Report")
-    y -= 30
-
-    # --- Draw main report (same as before, but store where to insert page numbers) ---
-    see_procedure_entries = []
-
-    # Upcoming Replacements
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(50, y, "Upcoming Replacements")
-    y -= 20
-    p.setFont("Helvetica", 11)
-    if not upcoming:
-        p.drawString(60, y, "No upcoming replacements.")
-        y -= 20
-    else:
-        for record in upcoming:
-            if y < 100:
-                p.showPage()
-                y = height - 40
-            p.drawString(60, y, f"Component: {record['component']}")
-            y -= 15
-            p.drawString(80, y, f"Battery: {record['battery']}")
-            y -= 15
-            p.drawString(80, y, f"Machine: {record['machine']} | Building: {record['building']}")
-            y -= 15
-            p.drawString(80, y, f"Last replaced: {record['last_replacement']}")
-            y -= 15
-            if record['next_due']:
-                p.drawString(80, y, f"Due on: {record['next_due']}")
-                y -= 15
-            else:
-                p.drawString(80, y, "Next due: On Alarm")
-                y -= 15
-            doc = getattr(record['component'], 'procedure_document', None)
-            if doc and doc.name.lower().endswith('.pdf'):
-                proc_label = f"See Procedure: {doc.name}"
-                p.drawString(80, y, proc_label)
-                see_procedure_entries.append((p._pageNumber, y, doc.name, proc_label))
-                y -= 15
-            y -= 10
-
-    # Overdue Replacements
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(50, y, "Overdue Replacements")
-    y -= 20
-    p.setFont("Helvetica", 11)
-    if not overdue:
-        p.drawString(60, y, "No overdue replacements.")
-        y -= 20
-    else:
-        for record in overdue:
-            if y < 100:
-                p.showPage()
-                y = height - 40
-            p.drawString(60, y, f"Component: {record['component']}")
-            y -= 15
-            p.drawString(80, y, f"Battery: {record['battery']}")
-            y -= 15
-            p.drawString(80, y, f"Machine: {record['machine']} | Building: {record['building']}")
-            y -= 15
-            p.drawString(80, y, f"Last replaced: {record['last_replacement']}")
-            y -= 15
-            if record['next_due']:
-                p.drawString(80, y, f"Overdue since: {record['next_due']}")
-                y -= 15
-            else:
-                p.drawString(80, y, "Overdue (On Alarm)")
-                y -= 15
-            doc = getattr(record['component'], 'procedure_document', None)
-            if doc and doc.name.lower().endswith('.pdf'):
-                proc_label = f"See Procedure: {doc.name}"
-                p.drawString(80, y, proc_label)
-                see_procedure_entries.append((p._pageNumber, y, doc.name, proc_label))
-                y -= 15
-            y -= 10
-
-    p.save()
-    buffer.seek(0)
-
-    # 2. Count pages in main report and each procedure
-    main_report_reader = PdfReader(buffer)
-    main_report_pages = len(main_report_reader.pages)
-
-    procedure_page_counts = {}
-    for docname, doc in procedures.items():
-        try:
-            with open(doc.path, 'rb') as f:
-                reader = PdfReader(f)
-                procedure_page_counts[docname] = len(reader.pages)
-        except Exception as e:
-            print(f"Could not read procedure PDF {doc.path}: {e}")
-
-    # 3. Calculate starting page for each procedure
-    procedure_start_pages = {}
-    current_page = main_report_pages + 1  # PDF pages are 1-based
-    for docname in procedures:
-        procedure_start_pages[docname] = current_page
-        current_page += procedure_page_counts.get(docname, 0)
-
-    # 4. Regenerate main report with page numbers for procedures
-    buffer2 = io.BytesIO()
-    p2 = canvas.Canvas(buffer2, pagesize=letter)
+    # 2. Generate the main report in a buffer
+    buffer_main = io.BytesIO()
+    p = canvas.Canvas(buffer_main, pagesize=letter)
     width, height = letter
     y = height - 40
 
     def draw_report_section(records, section_title):
+        nonlocal y
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(50, y, section_title)
+        y -= 20
+        p.setFont("Helvetica", 11)
+        if not records:
+            p.drawString(60, y, f"No {section_title.lower()}.")
+            y -= 20
+        else:
+            for record in records:
+                if y < 100:
+                    p.showPage()
+                    y = height - 40
+                p.drawString(60, y, f"Component: {record['component']}")
+                y -= 15
+                p.drawString(80, y, f"Battery: {record['battery']}")
+                y -= 15
+                p.drawString(80, y, f"Machine: {record['machine']} | Building: {record['building']}")
+                y -= 15
+                p.drawString(80, y, f"Last replaced: {record['last_replacement']}")
+                y -= 15
+                if record['next_due']:
+                    p.drawString(80, y, f"Due on: {record['next_due']}" if section_title == "Upcoming Replacements" else f"Overdue since: {record['next_due']}")
+                    y -= 15
+                else:
+                    p.drawString(80, y, "Next due: On Alarm" if section_title == "Upcoming Replacements" else "Overdue (On Alarm)")
+                    y -= 15
+                doc = getattr(record['component'], 'procedure_document', None)
+                if doc and doc.name.lower().endswith('.pdf'):
+                    # Placeholder for page number, will fill in after merging
+                    p.drawString(80, y, f"See Procedure: {doc.name} (see page ?)")
+                    y -= 15
+                y -= 10
+
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, y, "Battery Replacement Report")
+    y -= 30
+    draw_report_section(upcoming, "Upcoming Replacements")
+    draw_report_section(overdue, "Overdue Replacements")
+    p.save()
+    buffer_main.seek(0)
+
+    # 3. Count pages in main report and each procedure
+    main_report_reader = PdfReader(buffer_main)
+    main_report_pages = len(main_report_reader.pages)
+
+    procedure_page_counts = {}
+    for docname, doc in procedures.items():
+        full_path = doc.path if os.path.isabs(doc.path) else os.path.join(settings.MEDIA_ROOT, doc.name)
+        with open(full_path, 'rb') as f:
+            reader = PdfReader(f)
+            procedure_page_counts[docname] = len(reader.pages)
+
+    # 4. Calculate starting page for each procedure
+    procedure_start_pages = {}
+    current_page = main_report_pages + 1  # PDF pages are 1-based
+    for docname in procedures:
+        procedure_start_pages[docname] = current_page
+        current_page += procedure_page_counts[docname]
+
+    # 5. Regenerate main report with page numbers for procedures
+    buffer_final = io.BytesIO()
+    p2 = canvas.Canvas(buffer_final, pagesize=letter)
+    width, height = letter
+    y = height - 40
+
+    def draw_report_section_with_pages(records, section_title):
         nonlocal y
         p2.setFont("Helvetica-Bold", 14)
         p2.drawString(50, y, section_title)
@@ -363,27 +324,18 @@ def export_report_pdf(request):
     p2.setFont("Helvetica-Bold", 16)
     p2.drawString(50, y, "Battery Replacement Report")
     y -= 30
-    draw_report_section(upcoming, "Upcoming Replacements")
-    draw_report_section(overdue, "Overdue Replacements")
+    draw_report_section_with_pages(upcoming, "Upcoming Replacements")
+    draw_report_section_with_pages(overdue, "Overdue Replacements")
     p2.save()
-    buffer2.seek(0)
+    buffer_final.seek(0)
 
-    # 5. Merge the new main report with all procedure PDFs, adding bookmarks
+    # 6. Merge: main report (with page numbers), then each procedure PDF with bookmarks
     merger = PdfMerger()
-    merger.append(buffer2)
+    merger.append(buffer_final)
     for docname, doc in procedures.items():
-        if doc.name.lower().endswith('.pdf'):
-            try:
-                from django.conf import settings
-                full_path = doc.path if os.path.isabs(doc.path) else os.path.join(settings.MEDIA_ROOT, doc.name)
-                print(f"Appending procedure PDF: {full_path}")
-                if not os.path.exists(full_path):
-                    print(f"Procedure file not found: {full_path}")
-                    continue
-                with open(full_path, 'rb') as f:
-                    merger.append(f, outline_item=docname)
-            except Exception as e:
-                print(f"Error appending procedure PDF {full_path}: {e}")
+        full_path = doc.path if os.path.isabs(doc.path) else os.path.join(settings.MEDIA_ROOT, doc.name)
+        with open(full_path, 'rb') as f:
+            merger.append(f, outline_item=f"Procedure: {docname}")
 
     output_buffer = io.BytesIO()
     merger.write(output_buffer)
