@@ -219,6 +219,8 @@ def export_report_pdf(request):
     width, height = letter
     y = height - 40
 
+    missing_procedures = []
+
     def draw_report_section(records, section_title):
         nonlocal y
         p.setFont("Helvetica-Bold", 14)
@@ -262,13 +264,16 @@ def export_report_pdf(request):
     p.save()
     buffer_main.seek(0)
 
-    # 3. Count pages in main report and each procedure
+    # 3. Count pages in main report and each procedure, track missing files
     main_report_reader = PdfReader(buffer_main)
     main_report_pages = len(main_report_reader.pages)
 
     procedure_page_counts = {}
     for docname, doc in procedures.items():
         full_path = doc.path if os.path.isabs(doc.path) else os.path.join(settings.MEDIA_ROOT, doc.name)
+        if not os.path.exists(full_path):
+            missing_procedures.append(docname)
+            continue
         with open(full_path, 'rb') as f:
             reader = PdfReader(f)
             procedure_page_counts[docname] = len(reader.pages)
@@ -277,14 +282,29 @@ def export_report_pdf(request):
     procedure_start_pages = {}
     current_page = main_report_pages + 1  # PDF pages are 1-based
     for docname in procedures:
+        if docname in missing_procedures:
+            continue
         procedure_start_pages[docname] = current_page
         current_page += procedure_page_counts[docname]
 
-    # 5. Regenerate main report with page numbers for procedures
+    # 5. Regenerate main report with page numbers for procedures and missing file notice
     buffer_final = io.BytesIO()
     p2 = canvas.Canvas(buffer_final, pagesize=letter)
     width, height = letter
     y = height - 40
+
+    # Add missing procedures warning if any
+    if missing_procedures:
+        p2.setFont("Helvetica-Bold", 14)
+        p2.setFillColorRGB(1, 0, 0)
+        p2.drawString(50, y, "Warning: The following procedure documents are missing and will not be included in the PDF:")
+        y -= 20
+        p2.setFont("Helvetica", 11)
+        for docname in missing_procedures:
+            p2.drawString(60, y, f"- {docname}")
+            y -= 15
+        p2.setFillColorRGB(0, 0, 0)
+        y -= 10
 
     def draw_report_section_with_pages(records, section_title):
         nonlocal y
@@ -316,8 +336,13 @@ def export_report_pdf(request):
                     y -= 15
                 doc = getattr(record['component'], 'procedure_document', None)
                 if doc and doc.name.lower().endswith('.pdf'):
-                    page_num = procedure_start_pages.get(doc.name, '?')
-                    p2.drawString(80, y, f"See Procedure: {doc.name} (see page {page_num})")
+                    if doc.name in missing_procedures:
+                        p2.setFillColorRGB(1, 0, 0)
+                        p2.drawString(80, y, f"Procedure document missing: {doc.name}")
+                        p2.setFillColorRGB(0, 0, 0)
+                    else:
+                        page_num = procedure_start_pages.get(doc.name, '?')
+                        p2.drawString(80, y, f"See Procedure: {doc.name} (see page {page_num})")
                     y -= 15
                 y -= 10
 
@@ -333,6 +358,8 @@ def export_report_pdf(request):
     merger = PdfMerger()
     merger.append(buffer_final)
     for docname, doc in procedures.items():
+        if docname in missing_procedures:
+            continue
         full_path = doc.path if os.path.isabs(doc.path) else os.path.join(settings.MEDIA_ROOT, doc.name)
         with open(full_path, 'rb') as f:
             merger.append(f, outline_item=f"Procedure: {doc.name}")
