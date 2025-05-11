@@ -1,11 +1,23 @@
 from django.core.management.base import BaseCommand
 from maintenance.models import Building, Machine, Component, Battery, BatteryReplacementRecord
-from datetime import date, timedelta
-import random
-from random import choice, randint
+import csv
+import os
+
+EXPORT_DIR = "exported_data"
+
+def import_from_csv(model, filename, fieldnames):
+    objs = []
+    with open(os.path.join(EXPORT_DIR, filename), newline='', encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Convert fields to correct types if needed
+            obj = model(**{field: row[field] for field in fieldnames})
+            objs.append(obj)
+    model.objects.bulk_create(objs)
+    return objs
 
 class Command(BaseCommand):
-    help = 'Seeds the database with initial data'
+    help = 'Seeds the database with data from exported CSV files'
 
     def handle(self, *args, **options):
         self.stdout.write('Clearing old data...')
@@ -15,61 +27,17 @@ class Command(BaseCommand):
         Machine.objects.all().delete()
         Building.objects.all().delete()
 
-        self.stdout.write('Seeding the database...')
+        self.stdout.write('Importing data from CSVs...')
 
-        # Create buildings
-        buildings = []
-        for i in range(2):
-            building, _ = Building.objects.get_or_create(name=f"Building {i+1}")
-            buildings.append(building)
+        # Import order: Building -> Machine -> Component -> Battery -> BatteryReplacementRecord
+        import_from_csv(Building, "buildings.csv", ["id", "name"])
+        import_from_csv(Machine, "machines.csv", ["id", "building_id", "model", "machine_id"])
+        import_from_csv(Component, "components.csv", ["id", "machine_id", "name", "model_number", "oem"])
+        import_from_csv(Battery, "batteries.csv", [
+            "id", "component_id", "oem_part_number", "oem", "replacement_interval_type", "replacement_interval_months"
+        ])
+        import_from_csv(BatteryReplacementRecord, "battery_replacement_records.csv", [
+            "id", "battery_id", "replacement_date"
+        ])
 
-        # Create machines
-        machines = []
-        for i, building in enumerate(buildings):
-            for j in range(3):
-                machine, _ = Machine.objects.get_or_create(
-                    building=building,
-                    model=f"Machine Model {j+1}",
-                    machine_id=f"M{i+1}{j+1:02d}"
-                )
-                machines.append(machine)
-
-        # Create components
-        components = []
-        for machine in machines:
-            for k in range(2):
-                component, _ = Component.objects.get_or_create(
-                    machine=machine,
-                    name=f"Component {k+1} for {machine.model}",
-                    model_number=f"CM{k+1:03d}",
-                    oem=f"OEM {k+1}"
-                )
-                components.append(component)
-
-        # Create batteries
-        batteries = []
-        for component in components:
-            for l in range(1):
-                interval_type = choice(['months', 'alarm'])
-                if interval_type == 'months':
-                    interval_months = randint(3, 24)
-                else:
-                    interval_months = None
-                battery, _ = Battery.objects.get_or_create(
-                    component=component,
-                    oem_part_number=f"BATT-{l+1:03d}",
-                    oem=f"Battery OEM {l+1}",
-                    replacement_interval_type=interval_type,
-                    replacement_interval_months=interval_months
-                )
-                batteries.append(battery)
-
-        # Create battery replacement records
-        for battery in batteries:
-            for m in range(2):
-                BatteryReplacementRecord.objects.create(
-                    battery=battery,
-                    replacement_date=date.today() - timedelta(days=random.randint(1, 100))
-                )
-
-        self.stdout.write(self.style.SUCCESS('✅ Database seeding complete.'))
+        self.stdout.write(self.style.SUCCESS('✅ Database import complete.'))
