@@ -213,16 +213,29 @@ def export_report_pdf(request):
         if doc and doc.name.lower().endswith('.pdf') and doc.name not in procedures:
             procedures[doc.name] = doc
 
+<<<<<<< HEAD
     # 2. Generate the main report in a buffer
     buffer_main = io.BytesIO()
     p = canvas.Canvas(buffer_main, pagesize=letter)
+=======
+    # 2. Generate the main report with clickable links to cover pages
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+>>>>>>> eff10d34192e3a4852e94f7b003decc849d05958
     width, height = letter
     y = height - 40
+
+    # Map doc.name to anchor name for links
+    anchor_map = {docname: f"proc_{i+1}" for i, docname in enumerate(procedures)}
+
+    # Initialize procedure_start_pages as an empty dictionary
+    procedure_start_pages = {}
 
     def draw_report_section(records, section_title):
         nonlocal y
         p.setFont("Helvetica-Bold", 14)
         p.drawString(50, y, section_title)
+<<<<<<< HEAD
         y -= 20
         p.setFont("Helvetica", 11)
         if not records:
@@ -290,40 +303,47 @@ def export_report_pdf(request):
         nonlocal y
         p2.setFont("Helvetica-Bold", 14)
         p2.drawString(50, y, section_title)
+=======
+>>>>>>> eff10d34192e3a4852e94f7b003decc849d05958
         y -= 20
-        p2.setFont("Helvetica", 11)
+        p.setFont("Helvetica", 11)
         if not records:
-            p2.drawString(60, y, f"No {section_title.lower()}.")
+            p.drawString(60, y, f"No {section_title.lower()}.")
             y -= 20
         else:
             for record in records:
                 if y < 100:
-                    p2.showPage()
+                    p.showPage()
                     y = height - 40
-                p2.drawString(60, y, f"Component: {record['component']}")
+                p.drawString(60, y, f"Component: {record['component']}")
                 y -= 15
-                p2.drawString(80, y, f"Battery: {record['battery']}")
+                p.drawString(80, y, f"Battery: {record['battery']}")
                 y -= 15
-                p2.drawString(80, y, f"Machine: {record['machine']} | Building: {record['building']}")
+                p.drawString(80, y, f"Machine: {record['machine']} | Building: {record['building']}")
                 y -= 15
-                p2.drawString(80, y, f"Last replaced: {record['last_replacement']}")
+                p.drawString(80, y, f"Last replaced: {record['last_replacement']}")
                 y -= 15
                 if record['next_due']:
-                    p2.drawString(80, y, f"Due on: {record['next_due']}" if section_title == "Upcoming Replacements" else f"Overdue since: {record['next_due']}")
+                    p.drawString(80, y, f"Due on: {record['next_due']}" if section_title == "Upcoming Replacements" else f"Overdue since: {record['next_due']}")
                     y -= 15
                 else:
-                    p2.drawString(80, y, "Next due: On Alarm" if section_title == "Upcoming Replacements" else "Overdue (On Alarm)")
+                    p.drawString(80, y, "Next due: On Alarm" if section_title == "Upcoming Replacements" else "Overdue (On Alarm)")
                     y -= 15
                 doc = getattr(record['component'], 'procedure_document', None)
                 if doc and doc.name.lower().endswith('.pdf'):
+                    anchor = anchor_map[doc.name]
                     page_num = procedure_start_pages.get(doc.name, '?')
-                    p2.drawString(80, y, f"See Procedure: {doc.name} (see page {page_num})")
+                    link_text = f"See Procedure: {doc.name} (see page {page_num})"
+                    p.setFillColorRGB(0, 0, 1)
+                    p.drawString(80, y, link_text)
+                    p.setFillColorRGB(0, 0, 0)
                     y -= 15
                 y -= 10
 
-    p2.setFont("Helvetica-Bold", 16)
-    p2.drawString(50, y, "Battery Replacement Report")
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, y, "Battery Replacement Report")
     y -= 30
+<<<<<<< HEAD
     draw_report_section_with_pages(upcoming, "Upcoming Replacements")
     draw_report_section_with_pages(overdue, "Overdue Replacements")
     p2.save()
@@ -334,6 +354,43 @@ def export_report_pdf(request):
     merger.append(buffer_final)
     for docname, doc in procedures.items():
         full_path = doc.path if os.path.isabs(doc.path) else os.path.join(settings.MEDIA_ROOT, doc.name)
+=======
+    draw_report_section(upcoming, "Upcoming Replacements")
+    draw_report_section(overdue, "Overdue Replacements")
+    p.save()
+    buffer.seek(0)
+
+    # 3. Generate cover pages for each procedure
+    cover_buffers = []
+    for docname, doc in procedures.items():
+        cover_buffer = io.BytesIO()
+        c = canvas.Canvas(cover_buffer, pagesize=letter)
+        width, height = letter
+        y = height - 100
+        anchor = anchor_map[docname]
+        c.bookmarkPage(anchor)
+        c.addOutlineEntry(f"Procedure: {docname}", anchor, level=0, closed=False)
+        c.setFont("Helvetica-Bold", 20)
+        c.drawString(50, y, f"Procedure: {docname}")
+        y -= 40
+        c.setFont("Helvetica", 12)
+        c.drawString(50, y, "See the following pages for the full procedure document.")
+        c.showPage()
+        c.save()
+        cover_buffer.seek(0)
+        cover_buffers.append((docname, cover_buffer))
+
+    # 4. Merge everything: main report, cover pages, then procedure PDFs
+    merger = PdfMerger()
+    merger.append(buffer)
+    for (docname, cover_buffer) in cover_buffers:
+        merger.append(cover_buffer)
+        doc = procedures[docname]
+        full_path = doc.path if os.path.isabs(doc.path) else os.path.join(settings.MEDIA_ROOT, doc.name)
+        if not os.path.exists(full_path):
+            print(f"Procedure file not found: {full_path}")
+            continue
+>>>>>>> eff10d34192e3a4852e94f7b003decc849d05958
         with open(full_path, 'rb') as f:
             merger.append(f, outline_item=f"Procedure: {docname}")
 
