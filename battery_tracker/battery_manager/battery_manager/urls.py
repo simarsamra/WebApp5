@@ -32,6 +32,7 @@ urlpatterns = [
     path('history/export/', export_history_csv, name='export_history_csv'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('accounts/profile/', views.profile, name='profile'),
+    path('export_report_pdf/', views.export_report_pdf, name='export_report_pdf'),
 ]
 
 if settings.DEBUG:

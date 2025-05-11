@@ -4,7 +4,26 @@
 
 {% block content %}
     <h1>Battery Tracker</h1>
-  
+
+    <!-- Export Button at the Top with Styling -->
+    <div style="margin-bottom: 24px; text-align: right;">
+        <form method="get" action="{% url 'export_report_pdf' %}" style="display: inline;">
+            <button type="submit" style="
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 24px;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: background 0.2s;
+            " onmouseover="this.style.backgroundColor='#388E3C'" onmouseout="this.style.backgroundColor='#4CAF50'">
+                &#128190; Export Full Report as PDF
+            </button>
+        </form>
+    </div>
+
     <h2>Upcoming Replacements</h2>
     <ul>
         {% for record in upcoming_replacements %}
@@ -55,3 +74,10 @@
         {% endfor %}
     </ul>
 {% endblock %}
+
+def home(request):
+    upcoming_replacements, overdue_replacements = get_upcoming_and_overdue_replacements()
+    return render(request, 'maintenance/home.html', {
+        'upcoming_replacements': upcoming_replacements,
+        'overdue_replacements': overdue_replacements,
+    })

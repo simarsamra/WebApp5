@@ -3,3 +3,4 @@ uvicorn
 django-import-export
 python-dotenv
 reportlab
+PyPDF2
