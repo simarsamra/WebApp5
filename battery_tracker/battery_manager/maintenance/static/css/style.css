@@ -96,18 +96,32 @@ h2 {
     font-weight: 600;
 }
 
+/* Center the lists and limit their width */
 ul {
-    list-style: none;
+    max-width: 600px;
+    margin: 0 auto 2em auto;
     padding: 0;
+    list-style: none;
 }
 
+/* Make each list item fill the ul, but not the whole page */
 ul li {
-    background-color: white;
+    width: 100%;
+    box-sizing: border-box;
     margin-bottom: 1.1rem;
     padding: 1.2rem 1.5rem;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    transition: transform var(--transition), box-shadow var(--transition);
+    border-radius: var(--radius, 10px);
+    box-shadow: var(--shadow, 0 2px 8px rgba(44, 62, 80, 0.08));
+    background-color: white;
+    transition: transform var(--transition, 0.25s cubic-bezier(.4,0,.2,1)), box-shadow var(--transition, 0.25s cubic-bezier(.4,0,.2,1));
+    display: block;
+}
+
+/* Optional: make the text inside li more readable */
+ul li strong {
+    display: block;
+    margin-bottom: 0.7em;
+    font-size: 1.13em;
 }
 
 ul li:hover {

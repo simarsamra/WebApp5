@@ -15,6 +15,12 @@ import os
 import io
 from PyPDF2 import PdfMerger, PdfReader
 
+def get_battery_after_dash(battery):
+    battery_str = str(battery)
+    if '—' in battery_str:
+        return battery_str.split('—', 1)[1].strip()
+    return battery_str
+
 def get_upcoming_and_overdue_replacements():
     today = date.today()
     two_months_later = today + timedelta(days=60)
@@ -31,7 +37,7 @@ def get_upcoming_and_overdue_replacements():
         if battery.replacement_interval_type == 'months' and battery.replacement_interval_months:
             next_due = last_date + timedelta(days=30 * battery.replacement_interval_months)
             record_info = {
-                'battery': battery,
+                'battery': get_battery_after_dash(battery),
                 'component': battery.component,
                 'machine': battery.component.machine,
                 'building': battery.component.machine.building,
@@ -44,7 +50,7 @@ def get_upcoming_and_overdue_replacements():
                 upcoming_replacements.append(record_info)
         elif battery.replacement_interval_type == 'alarm':
             record_info = {
-                'battery': battery,
+                'battery': get_battery_after_dash(battery),
                 'component': battery.component,
                 'machine': battery.component.machine,
                 'building': battery.component.machine.building,
@@ -195,14 +201,6 @@ def export_history_csv(request):
 def profile(request):
     return render(request, 'maintenance/profile.html')
 
-import io
-from PyPDF2 import PdfMerger, PdfReader
-from django.http import HttpResponse
-import os
-from django.conf import settings
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-
 def export_report_pdf(request):
     upcoming, overdue = get_upcoming_and_overdue_replacements()
 
@@ -237,7 +235,11 @@ def export_report_pdf(request):
                     y = height - 40
                 p.drawString(60, y, f"Component: {record['component']}")
                 y -= 15
-                p.drawString(80, y, f"Battery: {record['battery']}")
+                # Only show battery string after dash if present
+                battery_str = str(record['battery'])
+                if '—' in battery_str:
+                    battery_str = battery_str.split('—', 1)[1].strip()
+                p.drawString(80, y, f"Battery: {battery_str}")
                 y -= 15
                 p.drawString(80, y, f"Machine: {record['machine']} | Building: {record['building']}")
                 y -= 15
@@ -322,7 +324,11 @@ def export_report_pdf(request):
                     y = height - 40
                 p2.drawString(60, y, f"Component: {record['component']}")
                 y -= 15
-                p2.drawString(80, y, f"Battery: {record['battery']}")
+                # Only show battery string after dash if present
+                battery_str = str(record['battery'])
+                if '—' in battery_str:
+                    battery_str = battery_str.split('—', 1)[1].strip()
+                p2.drawString(80, y, f"Battery: {battery_str}")
                 y -= 15
                 p2.drawString(80, y, f"Machine: {record['machine']} | Building: {record['building']}")
                 y -= 15

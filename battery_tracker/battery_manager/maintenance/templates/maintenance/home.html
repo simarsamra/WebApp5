@@ -28,9 +28,7 @@
     <ul>
         {% for record in upcoming_replacements %}
             <li class="upcoming">
-                <strong>
-                    {{ record.component }} &mdash; {{ record.battery }}
-                </strong>
+                <strong>{{ record.battery }}</strong>
                 <div>
                     Machine: {{ record.machine }}<br>
                     Building: {{ record.building }}
@@ -53,9 +51,7 @@
     <ul>
         {% for record in overdue_replacements %}
             <li class="overdue">
-                <strong>
-                    {{ record.component }} &mdash; {{ record.battery }}
-                </strong>
+                <strong>{{ record.battery }}</strong>
                 <div>
                     Machine: {{ record.machine }}<br>
                     Building: {{ record.building }}
@@ -74,10 +70,3 @@
         {% endfor %}
     </ul>
 {% endblock %}
-
-def home(request):
-    upcoming_replacements, overdue_replacements = get_upcoming_and_overdue_replacements()
-    return render(request, 'maintenance/home.html', {
-        'upcoming_replacements': upcoming_replacements,
-        'overdue_replacements': overdue_replacements,
-    })
