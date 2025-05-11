@@ -1,5 +1,10 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR.parent, '.env'))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,8 +39,9 @@ print(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
 print("USING SETTINGS FILE:", __file__)
 
 # Debug settings
-DEBUG = False
-ALLOWED_HOSTS = ['yourdomain.com', 'your.server.ip']
+SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Media files configuration
 MEDIA_URL = '/media/'

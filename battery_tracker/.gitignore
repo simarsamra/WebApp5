@@ -104,3 +104,4 @@ Desktop.ini
 *.log
 *.out
 *.err
+*.env
