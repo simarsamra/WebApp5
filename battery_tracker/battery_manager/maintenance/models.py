@@ -13,16 +13,20 @@ class Machine(models.Model):
     machine_id = models.CharField(max_length=50, unique=True)
 
     def __str__(self):
-        return f"{self.model} ({self.machine_id})"
+        return f"{self.model} ({self.machine_id}) in {self.building.name}"
 
 class Component(models.Model):
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE, related_name="components")
     name = models.CharField(max_length=100)
     model_number = models.CharField(max_length=100)
     oem = models.CharField(max_length=100)
+    procedure_document = models.FileField(
+        upload_to='procedure_documents/', blank=True, null=True,
+        help_text="Upload a document for the replacement procedure (optional)."
+    )
 
     def __str__(self):
-        return f"{self.name} ({self.model_number})"
+        return f"{self.name} ({self.model_number}) on {self.machine}"
 
 class Battery(models.Model):
     component = models.ForeignKey(Component, on_delete=models.CASCADE, related_name="batteries")
@@ -43,7 +47,9 @@ class Battery(models.Model):
     )
 
     def __str__(self):
-        return f"{self.oem} ({self.oem_part_number})"
+        return (
+            f"{self.oem} ({self.oem_part_number}) for {self.component}"
+        )
 
 class BatteryReplacementRecord(models.Model):
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE, related_name="replacement_records")
