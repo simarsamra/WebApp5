@@ -40,7 +40,13 @@ print("USING SETTINGS FILE:", __file__)
 
 # Debug settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+def get_bool_env(varname, default=False):
+    val = os.getenv(varname, str(default))
+    return val.lower() in ('1', 'true', 'yes', 'on')
+
+DEBUG = get_bool_env('DEBUG', False)
+
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Media files configuration

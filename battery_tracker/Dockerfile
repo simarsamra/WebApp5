@@ -22,11 +22,14 @@ RUN pip install -r requirements.txt
 # Copy project files
 COPY . /app/
 
-# Collect static files and run migrations at build time
+# Collect static files at build time
 RUN python battery_manager/manage.py collectstatic --noinput
+
+# Change working directory to where manage.py is
+WORKDIR /app/battery_manager
 
 # Expose port
 EXPOSE 8000
 
 # Start server using uvicorn (ASGI)
-CMD python battery_manager/manage.py migrate && python -m uvicorn battery_manager.asgi:application --host 0.0.0.0 --port 8000
+CMD python manage.py migrate && python -m uvicorn battery_manager.asgi:application --host 0.0.0.0 --port 8000
