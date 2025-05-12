@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    command: /bin/sh -c "python battery_manager/manage.py migrate && python battery_manager/manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=1
+    # Uncomment and configure if you use a database container
+    # depends_on:
+    #   - db
+
+# Example for a PostgreSQL service (uncomment and configure if needed)
+#  db:
+#    image: postgres:15
+#    environment:
+#      POSTGRES_DB: yourdbname
+#      POSTGRES_USER: yourdbuser
+#      POSTGRES_PASSWORD: yourdbpassword
+#    ports:
+#      - "5432:5432"
