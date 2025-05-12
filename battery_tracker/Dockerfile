@@ -22,6 +22,10 @@ RUN pip install -r requirements.txt
 # Copy project files
 COPY . /app/
 
+# Copy entrypoint script
+COPY entrypoint.sh /app/battery_manager/entrypoint.sh
+RUN chmod +x /app/battery_manager/entrypoint.sh
+
 # Collect static files at build time
 RUN python battery_manager/manage.py collectstatic --noinput
 
@@ -31,5 +35,5 @@ WORKDIR /app/battery_manager
 # Expose port
 EXPOSE 8000
 
-# Start server using uvicorn (ASGI)
-CMD python manage.py migrate && python -m uvicorn battery_manager.asgi:application --host 0.0.0.0 --port 8000
+# Start server using entrypoint script
+CMD ["/app/battery_manager/entrypoint.sh"]
