@@ -41,9 +41,37 @@ def create_venv():
 
 def get_venv_python():
     if os.name == "nt":
-        return os.path.abspath(os.path.join(VENV_DIR, "Scripts", "python.exe"))
+        py_path = os.path.abspath(os.path.join(VENV_DIR, "Scripts", "python.exe"))
     else:
-        return os.path.abspath(os.path.join(VENV_DIR, "bin", "python"))
+        py_path = os.path.abspath(os.path.join(VENV_DIR, "bin", "python"))
+    recreate = False
+
+    # Check if the venv python exists and is valid
+    if not os.path.isfile(py_path):
+        print(f"Virtual environment Python not found at '{py_path}'. Will recreate venv.")
+        recreate = True
+    else:
+        # Check if the venv python points to a valid base interpreter
+        try:
+            out = subprocess.check_output([py_path, "-c", "import sys; print(sys.executable)"], text=True).strip()
+            if not os.path.exists(out):
+                print(f"Venv python points to missing interpreter '{out}'. Will recreate venv.")
+                recreate = True
+        except Exception:
+            print("Venv python is broken. Will recreate venv.")
+            recreate = True
+
+    if recreate:
+        if os.path.isdir(VENV_DIR):
+            import shutil
+            shutil.rmtree(VENV_DIR)
+        venv.create(VENV_DIR, with_pip=True)
+        print(f"Virtual environment recreated in '{VENV_DIR}'.")
+        if os.name == "nt":
+            py_path = os.path.abspath(os.path.join(VENV_DIR, "Scripts", "python.exe"))
+        else:
+            py_path = os.path.abspath(os.path.join(VENV_DIR, "bin", "python"))
+    return py_path
 
 def install_requirements(python_exec):
     run(f'"{python_exec}" -m pip install --upgrade pip')
