@@ -33,8 +33,8 @@ RUN chmod +x /app/entrypoint.sh
 # Ensure this runs from the correct context if manage.py is nested
 RUN python battery_manager/manage.py collectstatic --noinput
 
-# Change working directory to where manage.py is, so manage.py commands run from the correct context
-WORKDIR /app/battery_manager # This is important for manage.py commands in entrypoint.sh
+# Change working directory to where manage.py is
+WORKDIR /app/battery_manager
 
 # Expose port
 EXPOSE 8000
