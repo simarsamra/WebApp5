@@ -20,21 +20,40 @@ from django.conf import settings
 from django.conf.urls.static import static
 from maintenance import views
 from maintenance.views import export_history_csv
-#from django.contrib.auth import views as auth_views
+from django.contrib.auth import views as auth_views  # Import auth_views
 
 urlpatterns = [
-    path('', views.home, name='home'),  # Home page
-    path('history/', views.history, name='history'),  # History page
+    path('admin/', admin.site.urls),
+    path('', views.home, name='home'),
+    path('history/', views.history, name='history'),
     path('log-replacement/', views.log_replacement, name='log_replacement'),
     path('api/machines/', views.get_machines, name='api_machines'),
     path('api/components/', views.get_components, name='api_components'),
     path('api/batteries/', views.get_batteries, name='api_batteries'),
     path('history/export/', export_history_csv, name='export_history_csv'),
-    path('accounts/', include('django.contrib.auth.urls')),
+
+    # Include most auth URLs, but override password change ones
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
+    path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
+
+    path('accounts/password_change/',
+         auth_views.PasswordChangeView.as_view(
+             template_name='registration/password_change_form.html'  # Explicitly point to your custom template
+         ),
+         name='password_change'),
+    path('accounts/password_change/done/',
+         auth_views.PasswordChangeDoneView.as_view(
+             template_name='registration/password_change_done.html'  # Explicitly point to your custom template
+         ),
+         name='password_change_done'),
+
+    # You might need to add other auth URLs if you use them (password reset, etc.)
+    # or use include('django.contrib.auth.urls') and hope the DIRS setting works.
+    # For now, let's be explicit for password change.
+    # path('accounts/', include('django.contrib.auth.urls')), # Comment this out if defining manually above
+
     path('accounts/profile/', views.profile, name='profile'),
     path('export_report_pdf/', views.export_report_pdf, name='export_report_pdf'),
-    #path('password_change/', auth_views.PasswordChangeView.as_view(template_name='registration/password_change_form.html'), name='password_change'),
-    #path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='registration/password_change_done.html'), name='password_change_done'),
 ]
 
 if settings.DEBUG:
