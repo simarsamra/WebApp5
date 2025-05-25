@@ -1,0 +1,4 @@
+id,component_id,oem_part_number,oem,replacement_interval_type,replacement_interval_months
+13,13,A02B-0200-K102,Fanuc,months,1
+14,14,A02B-0200-K102,Fanuc,months,1
+15,15,6FC5247-0AA18-0AA0,Siemens,months,1
