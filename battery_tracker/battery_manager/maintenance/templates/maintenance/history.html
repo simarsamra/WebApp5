@@ -3,34 +3,40 @@
 {% block title %}Replacement History{% endblock %}
 
 {% block content %}
-    <h1>Replacement History</h1>
-    <form method="get" id="history-filter-form" style="margin-bottom: 1em;">
-        <label for="building">Building:</label>
-        <select name="building" id="building">
-            <option value="">All</option>
-            {% for building in buildings %}
-                <option value="{{ building.id }}" {% if building.id|stringformat:"s" == request.GET.building %}selected{% endif %}>{{ building.name }}</option>
-            {% endfor %}
-        </select>
-        <label for="machine">Machine:</label>
-        <select name="machine" id="machine">
-            <option value="">All</option>
-            {% for machine in machines %}
-                <option value="{{ machine.id }}" {% if machine.id|stringformat:"s" == request.GET.machine %}selected{% endif %}>{{ machine.model }} ({{ machine.machine_id }})</option>
-            {% endfor %}
-        </select>
-        <label for="component">Component:</label>
-        <select name="component" id="component">
-            <option value="">All</option>
-            {% for component in components %}
-                <option value="{{ component.id }}" {% if component.id|stringformat:"s" == request.GET.component %}selected{% endif %}>{{ component.name }} ({{ component.model_number }})</option>
-            {% endfor %}
-        </select>
-        <label for="date_from">From:</label>
-        <input type="date" name="date_from" value="{{ request.GET.date_from }}">
-        <label for="date_to">To:</label>
-        <input type="date" name="date_to" value="{{ request.GET.date_to }}">
-        <button type="submit">Filter</button>
+<h1>Replacement History</h1>
+
+<div class="filters">
+    <form id="history-filter-form" class="filter-form" method="get" style="margin-bottom: 1em;">
+        <div class="filter-group">
+            <label for="building">Building:</label>
+            <select name="building" id="building">
+                <option value="">Select Building</option>
+                {% for building in buildings %}
+                    <option value="{{ building.id }}" {% if building.id|stringformat:"s" == request.GET.building %}selected{% endif %}>{{ building.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="machine">Machine:</label>
+            <select name="machine" id="machine">
+                <option value="">Select Machine</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="component">Component:</label>
+            <select name="component" id="component">
+                <option value="">Select Component</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="date_from">From:</label>
+            <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+        </div>
+        <div class="filter-group">
+            <label for="date_to">To:</label>
+            <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+        </div>
+        <button type="submit" class="submit-button">Filter</button>
     </form>
     <form method="get" action="{% url 'export_history_csv' %}" style="display:inline;">
         <input type="hidden" name="building" value="{{ request.GET.building }}">
@@ -38,31 +44,135 @@
         <input type="hidden" name="component" value="{{ request.GET.component }}">
         <input type="hidden" name="date_from" value="{{ request.GET.date_from }}">
         <input type="hidden" name="date_to" value="{{ request.GET.date_to }}">
-        <button type="submit">Export to CSV</button>
+        <button type="submit" class="submit-button">Export to CSV</button>
     </form>
-    <table border="1" cellpadding="4" cellspacing="0">
-        <thead>
-            <tr>
-                <th>Building</th>
-                <th>Machine</th>
-                <th>Component</th>
-                <th>Battery</th>
-                <th>Replacement Date</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for record in replacement_history %}
-            <tr>
-                <td>{{ record.battery.component.machine.building.name }}</td>
-                <td>{{ record.battery.component.machine }}</td>
-                <td>{{ record.battery.component }}</td>
-                <td>{{ record.battery }}</td>
-                <td>{{ record.replacement_date }}</td>
-            </tr>
-        {% empty %}
-            <tr><td colspan="5">No replacement history available.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
-{% endblock %}
+</div>
+
+<table class="styled-table">
+    <thead>
+        <tr>
+            <th>Building</th>
+            <th>Machine</th>
+            <th>Component</th>
+            <th>Battery</th>
+            <th>Replacement Date</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for record in replacement_history %}
+        <tr>
+            <td>{{ record.battery.component.machine.building.name }}</td>
+            <td>{{ record.battery.component.machine }}</td>
+            <td>{{ record.battery.component }}</td>
+            <td>{{ record.battery }}</td>
+            <td>{{ record.replacement_date }}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="5">No replacement history available.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
 <a href="{% url 'home' %}">Back to Home</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buildingSelect = document.getElementById('building');
+    const machineSelect = document.getElementById('machine');
+    const componentSelect = document.getElementById('component');
+
+    async function fetchAndPopulate(url, targetSelect, placeholder, selectedId) {
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            targetSelect.innerHTML = `<option value="">${placeholder}</option>`;
+            data.forEach(item => {
+                const selected = selectedId && selectedId == item.id ? 'selected' : '';
+                targetSelect.innerHTML += `<option value="${item.id}" ${selected}>${item.label}</option>`;
+            });
+        } catch (error) {
+            targetSelect.innerHTML = `<option value="">${placeholder}</option>`;
+        }
+    }
+
+    // Pre-select values if present
+    const selectedBuilding = "{{ request.GET.building|default_if_none:'' }}";
+    const selectedMachine = "{{ request.GET.machine|default_if_none:'' }}";
+    const selectedComponent = "{{ request.GET.component|default_if_none:'' }}";
+
+    if (selectedBuilding) {
+        fetchAndPopulate(`/api/machines/?building=${selectedBuilding}`, machineSelect, 'Select Machine', selectedMachine)
+            .then(() => {
+                if (selectedMachine) {
+                    fetchAndPopulate(`/api/components/?machine=${selectedMachine}`, componentSelect, 'Select Component', selectedComponent);
+                }
+            });
+    }
+
+    buildingSelect.addEventListener('change', () => {
+        const buildingId = buildingSelect.value;
+        if (buildingId) {
+            fetchAndPopulate(`/api/machines/?building=${buildingId}`, machineSelect, 'Select Machine');
+        } else {
+            machineSelect.innerHTML = '<option value="">Select Machine</option>';
+        }
+        componentSelect.innerHTML = '<option value="">Select Component</option>';
+    });
+
+    machineSelect.addEventListener('change', () => {
+        const machineId = machineSelect.value;
+        if (machineId) {
+            fetchAndPopulate(`/api/components/?machine=${machineId}`, componentSelect, 'Select Component');
+        } else {
+            componentSelect.innerHTML = '<option value="">Select Component</option>';
+        }
+    });
+});
+</script>
+<style>
+/* Simple styling to match log_replacement look */
+.filters {
+    margin-bottom: 1em;
+}
+.filter-form, .filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+    align-items: center;
+}
+.filter-group label {
+    margin-right: 0.5em;
+}
+.styled-table {
+    border-collapse: collapse;
+    margin-top: 1em;
+    width: 100%;
+    font-size: 1em;
+    min-width: 400px;
+    box-shadow: 0 0 10px #e0e0e0;
+}
+.styled-table th, .styled-table td {
+    border: 1px solid #dddddd;
+    padding: 8px 12px;
+    text-align: left;
+}
+.styled-table th {
+    background-color: #f2f2f2;
+}
+.styled-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+.submit-button {
+    padding: 6px 16px;
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.submit-button:hover {
+    background: #1565c0;
+}
+</style>
+{% endblock %}
